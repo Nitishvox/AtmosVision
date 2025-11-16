@@ -1,0 +1,8 @@
+{
+  "name": "AtmosVision AI: Climate Resilience Platform",
+  "description": "An AI-powered platform combining LLMs, satellite analytics, and predictive modeling to predict disasters, prepare communities with real-time alerts, and protect lives with actionable insights.",
+  "requestFramePermissions": [
+    "microphone",
+    "geolocation"
+  ]
+}

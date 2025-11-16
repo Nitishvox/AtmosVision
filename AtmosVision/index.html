@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AtmosVision AI: Climate Resilience Platform</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+  <script type="importmap">
+{
+  "imports": {
+    "react-dom/": "https://aistudiocdn.com/react-dom@^18.2.0/",
+    "react/": "https://aistudiocdn.com/react@^18.2.0/",
+    "react": "https://aistudiocdn.com/react@^18.2.0",
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.29.1",
+    "geojson": "https://aistudiocdn.com/geojson@^0.5.0",
+    "leaflet": "https://aistudiocdn.com/leaflet@^1.9.4",
+    "react-leaflet": "https://aistudiocdn.com/react-leaflet@^4.2.1"
+  }
+}
+</script>
+<style>
+  /* Custom scrollbar for Webkit browsers (Chrome, Safari) */
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 8px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #0e7490; /* cyan-700 */
+    border-radius: 4px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #06b6d4; /* cyan-500 */
+  }
+  /* Custom scrollbar for Firefox */
+  .custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: #0e7490 transparent;
+  }
+  
+  /* Custom Leaflet Marker Styles */
+  .alert-marker {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.3s ease-in-out;
+    width: 24px;
+    height: 24px;
+  }
+  .alert-marker.selected {
+    transform: scale(1.5);
+  }
+  .marker-beacon {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    animation: ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite;
+  }
+  .marker-core {
+    position: relative;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 2px solid white;
+    box-shadow: 0 0 5px rgba(0,0,0,0.5);
+  }
+
+  /* Colors based on alert level */
+  .marker-critical .marker-beacon,
+  .marker-critical .marker-core {
+    background-color: #ef4444; /* red-500 */
+  }
+  .marker-high .marker-beacon,
+  .marker-high .marker-core {
+    background-color: #f97316; /* orange-500 */
+  }
+  .marker-moderate .marker-beacon,
+  .marker-moderate .marker-core {
+    background-color: #facc15; /* yellow-400 */
+  }
+
+  @keyframes ping {
+    0% {
+      transform: translate(-50%, -50%) scale(1);
+      opacity: 0.75;
+    }
+    75%, 100% {
+      transform: translate(-50%, -50%) scale(2);
+      opacity: 0;
+    }
+  }
+
+  /* Earthquake Marker Styles */
+  .earthquake-marker {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.3s ease-in-out;
+    width: 24px;
+    height: 24px;
+  }
+  .earthquake-marker.selected {
+    transform: scale(1.8);
+  }
+  .earthquake-core {
+    width: 8px;
+    height: 8px;
+    background-color: #fca5a5; /* red-300 */
+    border: 1px solid white;
+    border-radius: 50%;
+    z-index: 1;
+  }
+  .earthquake-ripple {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 24px;
+    height: 24px;
+    border: 2px solid #ef4444; /* red-500 */
+    border-radius: 50%;
+    animation: ripple 1.5s ease-out infinite;
+  }
+
+  @keyframes ripple {
+    from {
+      transform: translate(-50%, -50%) scale(0);
+      opacity: 1;
+    }
+    to {
+      transform: translate(-50%, -50%) scale(1);
+      opacity: 0;
+    }
+  }
+
+  /* Storm Marker Styles */
+  .storm-marker {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    transition: transform 0.3s ease-in-out;
+  }
+  .storm-marker.selected {
+    transform: scale(1.8);
+  }
+  .storm-core {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    animation: spin 4s linear infinite;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .storm-icon {
+      width: 16px;
+      height: 16px;
+      stroke: white;
+      stroke-width: 1.5;
+  }
+
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+
+  .storm-marker.marker-critical .storm-core {
+    background-color: rgba(190, 24, 93, 0.7); /* pink-800 */
+    border: 1px solid #F472B6; /* pink-400 */
+  }
+  .storm-marker.marker-high .storm-core {
+    background-color: rgba(124, 58, 237, 0.7); /* violet-600 */
+    border: 1px solid #A78BFA; /* violet-400 */
+  }
+
+  /* Weather Dashboard Animation */
+  .weather-dashboard-enter {
+    animation: slide-in-bottom 0.7s cubic-bezier(0.250, 0.460, 0.450, 0.940) both;
+  }
+  @keyframes slide-in-bottom {
+    0% {
+      transform: translateY(100px);
+      opacity: 0;
+    }
+    100% {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+
+  /* Chat message animation */
+  .message-enter {
+    animation: slide-in-up 0.4s cubic-bezier(0.250, 0.460, 0.450, 0.940) both;
+  }
+  @keyframes slide-in-up {
+    0% {
+      transform: translateY(20px);
+      opacity: 0;
+    }
+    100% {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+
+  /* Fix for Leaflet map container sizing issue */
+  #map, .leaflet-container {
+    height: 100% !important;
+    width: 100% !important;
+  }
+</style>
+<link rel="stylesheet" href="/index.css">
+</head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
+  </body>
+</html>
